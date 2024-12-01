@@ -7,5 +7,5 @@ description
 """
 
 def trim_data_to_5_seconds(data):
-    trimmed_data = data[:6]
+    trimmed_data = data[6:]
     return trimmed_data
