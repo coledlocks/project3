@@ -5,7 +5,10 @@ project3_module.py
 description
 @author: jilliangriffith
 """
+import numpy as np 
 
-def trim_data_to_5_seconds(data):
-    trimmed_data = data[6:]
-    return trimmed_data
+def load_data(file, fs):
+    data = np.loadtxt(file) * 5/1023
+    time = np.arange(0, len(data)/fs, 1/fs)
+    return data, time
+
