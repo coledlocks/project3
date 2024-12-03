@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
 Created on Tue Nov 26 18:31:01 2024
@@ -11,60 +11,26 @@ from matplotlib import pyplot as plt
 
 #%% Part 1 
 
-# load data 
-rest = '/Users/jilliangriffith/Desktop/CORE_3/Project_3 /rest.txt'
-relax = '/Users/jilliangriffith/Desktop/CORE_3/Project_3 /relax.txt'
-mental_stress = '/Users/jilliangriffith/Desktop/CORE_3/Project_3 /mentalstress.txt'
-wall_sit = '/Users/jilliangriffith/Desktop/CORE_3/Project_3 /wallsit.txt'
+rest_data, rest_time = p3m.load_data('rest.txt', 500)
+relax_data, relax_time = p3m.load_data('relax.txt', 500)
+mentalstress_data, mentalstress_time = p3m.load_data('mentalstress.txt', 500)
+wallsit_data, wallsit_time = p3m.load_data('wallsit.txt', 500)
 
-rest = np.loadtxt(rest)
-relax = np.loadtxt(relax)
-mentalstress = np.loadtxt(mental_stress)
-wallsit = np.loadtxt(wall_sit)
-# plot 
-plt.figure(1, clear=True)
-rest_plot = p3m.trim_data_to_5_seconds(rest)
-plt.plot(rest_plot)
-plt.xlabel('Time (s)')
-plt.ylabel('')
-plt.title('Rest')
-plt.show()
+# Plots 
+plt.figure(1, clear = True) 
+plt.plot(rest_time, rest_data)
 
-plt.figure(2, clear=True)
-relax_plot = p3m.trim_data_to_5_seconds(relax)
-plt.plot(relax_plot)
-plt.xlabel('Time (s)')
-plt.ylabel('')
-plt.title('Relax')
-plt.show()
+plt.figure(2, clear = True) 
+plt.plot(relax_time, relax_data)
 
-plt.figure(3, clear=True)
-mentalstress_plot = p3m.trim_data_to_5_seconds(mentalstress)
-plt.plot(mentalstress_plot)
-plt.xlabel('Time (s)')
-plt.ylabel('')
-plt.title('Mental Stress')
-plt.show()
+plt.figure(3, clear = True )
+plt.plot(mentalstress_time, mentalstress_data, 500)
 
-plt.figure(4, clear=True)
-wallsit_plot = p3m.trim_data_to_5_seconds(wallsit)
-plt.plot(wallsit_plot)
-plt.xlabel('Time (s)')
-plt.ylabel('')
-plt.title('Wall Sit')
-plt.show()
+plt.figure(4, clear = True) 
+plt.plot(wallsit_time, wallsit_data)
 
-plt.figure(5, clear=True)
-plt.plot(rest_plot, label='Rest')
-plt.plot(relax_plot, label='Relax')
-plt.plot(mentalstress_plot, label='Mental Stress')
-plt.plot(wallsit_plot, label='Wall Sit')
-plt.xlabel('Time (s)')
-plt.ylabel('')
-plt.title('All Activities')
-plt.legend()
-plt.show()
-
+plt.figure(5, clear = True)
+#need to combine them 
 #%% Part 2 
 
 
