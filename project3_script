@@ -1,20 +1,42 @@
-!/usr/bin/env python3
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Created on Tue Nov 26 18:31:01 2024
+Created on Tue Dec  3 10:44:58 2024
 
-@author: jilliangriffith
+@author: coledlocks
 """
+
+# importing related packages
 import project3_module as p3m
 import numpy as np
 from matplotlib import pyplot as plt
 
 #%% Part 1 
 
-rest_data, rest_time = p3m.load_data('rest.txt', 500)
-relax_data, relax_time = p3m.load_data('relax.txt', 500)
-mentalstress_data, mentalstress_time = p3m.load_data('mentalstress.txt', 500)
-wallsit_data, wallsit_time = p3m.load_data('wallsit.txt', 500)
+fs = 500 # sampling rate
+
+# loading the data
+rest_data, rest_time = p3m.load_data('rest.txt', fs)
+relax_data, relax_time = p3m.load_data('relax.txt', fs)
+mentalstress_data, mentalstress_time = p3m.load_data('mentalstress.txt', fs)
+wallsit_data, wallsit_time = p3m.load_data('wallsit.txt', fs)
+
+# trimming the data to 5 seconds
+rest_data = p3m.trim_data_to_5_seconds(rest_data)
+rest_time = p3m.trim_data_to_5_seconds(rest_time)
+
+relax_data = p3m.trim_data_to_5_seconds(relax_data)
+relax_time = p3m.trim_data_to_5_seconds(relax_time)
+
+mentalstress_data = p3m.trim_data_to_5_seconds(mentalstress_data)
+mentalstress_time = p3m.trim_data_to_5_seconds(mentalstress_time)
+
+wallsit_data = p3m.trim_data_to_5_seconds(wallsit_data)
+wallsit_time = p3m.trim_data_to_5_seconds(wallsit_time)
+
+# concatenating the data
+total_data = np.concatenate((rest_data, relax_data, mentalstress_data, wallsit_data))
+total_time = np.arange(0, len(total_data)/fs, 1/fs)
 
 # Plots 
 plt.figure(1, clear = True) 
@@ -24,17 +46,12 @@ plt.figure(2, clear = True)
 plt.plot(relax_time, relax_data)
 
 plt.figure(3, clear = True )
-plt.plot(mentalstress_time, mentalstress_data, 500)
+plt.plot(mentalstress_time, mentalstress_data)
 
 plt.figure(4, clear = True) 
 plt.plot(wallsit_time, wallsit_data)
 
 plt.figure(5, clear = True)
-#need to combine them 
+plt.plot(total_time, total_data)
 #%% Part 2 
-
-
-
-
-
-
+# use bandpass and butterworth
