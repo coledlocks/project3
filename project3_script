@@ -55,3 +55,80 @@ plt.figure(5, clear = True)
 plt.plot(total_time, total_data)
 #%% Part 2 
 # use bandpass and butterworth
+# declare filter parameters
+order = 4 #above this the cutoffs look weird
+cutoff_frequency = (0.5,20)
+window = 'hann'
+filter_type = 'bandpass'
+
+# filter coefficients 
+h_t = signal.firwin(order, cutoff_frequency, window=window, pass_zero=filter_type, fs=fs)
+t_filter = np.arange(0, len(h_t)/fs,1/fs)
+
+plt.figure(7, clear=True)
+plt.plot(t_filter, h_t)
+
+# Design the Butterworth band-pass filter
+b, a = signal.butter(order, cutoff_frequency, btype='bandpass', fs=fs)
+
+# Apply the filter using filtfilt 
+filtered_rest = signal.filtfilt(b, a, plot_rest_data)
+filtered_mentalstress = signal.filtfilt(b, a, plot_mentalstress_data)
+filtered_wallsit = signal.filtfilt(b, a, plot_wallsit_data)
+filtered_relax = signal.filtfilt(b, a, plot_relax_data)
+# y_t = np.convolve(plot_rest_data, filtered_signal, mode='some')
+
+# product a plot of the filters impulse response and frequency response 
+impulse = np.zeros(500)  # 500 samples
+impulse[0] = 1  # Delta function (impulse at t=0)
+
+# Apply the filter to the impulse signal
+impulse_response = signal.lfilter(b, a, impulse)
+
+# Create a time vector corresponding to the impulse response
+time = np.arange(0, len(impulse_response)) / fs  # Time in seconds
+
+# Plot the impulse response
+plt.figure(6, clear = True )
+plt.plot(time, impulse_response, color='blue')
+plt.title('Impulse Response of the Butterworth Band-Pass Filter')
+
+#%%
+
+# Plot original and filtered signals 
+"i dont think we need all of these lol so we can take some out eventually "
+"also the filter just smooths everything out but to see it you need to zoom in a little, idk if its perfect we can always change it"
+plt.figure(7, clear=True)
+plt.subplot(4,2,1)
+plt.plot(plot_rest_time, plot_rest_data, color = 'blue')
+plt.title('Original Rest Signal')
+plt.subplot(4,2,2)
+plt.plot(plot_rest_time, filtered_rest, color = 'green')
+plt.title('Filtered Rest Signal')
+
+plt.subplot(4,2,3)
+plt.plot(plot_mentalstress_time, plot_mentalstress_data, color = 'blue')
+plt.title('Original Mental Stress Signal')
+plt.subplot(4,2,4)
+plt.plot(plot_mentalstress_time, filtered_mentalstress, color = 'green')
+plt.title('Filtered Mental Stress Signal')
+
+plt.subplot(4,2,5)
+plt.plot(plot_wallsit_time, plot_wallsit_data, color = 'blue')
+plt.title('Original Wallsit Signal')
+plt.subplot(4,2,6)
+plt.plot(plot_wallsit_time, filtered_wallsit, color = 'green')
+plt.title('Filtered Wallsit Signal')
+
+plt.subplot(4,2,7)
+plt.plot(plot_relax_time, plot_relax_data, color = 'blue')
+plt.title('Original Relax Signal')
+plt.subplot(4,2,8)
+plt.plot(plot_relax_time, filtered_relax, color = 'green')
+plt.title('Filtered Relax Signal')
+
+plt.tight_layout()
+
+
+
+#%% Part 3 
