@@ -1,17 +1,21 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Created on Tue Dec  3 10:40:03 2024
-
-@author: coledlocks
+project3_module.py
+description
+@author: jilliangriffith
 """
-
 import numpy as np 
+
 def load_data(file, fs):
-    data = np.loadtxt(file) * 5/1023
+    data = np.loadtxt(file) * 5/1023 
+    data = data - np.mean(data) # remove DC offset, which is just an Arduino addition
     time = np.arange(0, len(data)/fs, 1/fs)
     return data, time
 
-def trim_data_to_5_seconds(data):
+def trim_data(data):
     trimmed_data = data[:2500]
     return trimmed_data
+
+
+    
