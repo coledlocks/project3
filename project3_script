@@ -54,7 +54,7 @@ plt.plot(wallsit_time, wallsit_data)
 plt.figure(5, clear = True)
 plt.plot(total_time, total_data)
 #%% Part 2 
-# use bandpass and butterworth
+
 # declare filter parameters
 order = 4 #above this the cutoffs look weird
 cutoff_frequency = (0.5,20)
@@ -65,8 +65,9 @@ filter_type = 'bandpass'
 h_t = signal.firwin(order, cutoff_frequency, window=window, pass_zero=filter_type, fs=fs)
 t_filter = np.arange(0, len(h_t)/fs,1/fs)
 
-plt.figure(7, clear=True)
+plt.figure(6, clear=True)
 plt.plot(t_filter, h_t)
+plt.title('Band-pass Filter')
 
 # Design the Butterworth band-pass filter
 b, a = signal.butter(order, cutoff_frequency, btype='bandpass', fs=fs)
@@ -76,8 +77,18 @@ filtered_rest = signal.filtfilt(b, a, plot_rest_data)
 filtered_mentalstress = signal.filtfilt(b, a, plot_mentalstress_data)
 filtered_wallsit = signal.filtfilt(b, a, plot_wallsit_data)
 filtered_relax = signal.filtfilt(b, a, plot_relax_data)
-# y_t = np.convolve(plot_rest_data, filtered_signal, mode='some')
 
+# FREQUENCY response 
+# Compute the frequency response
+w, h = signal.freqz(b, a)
+# plot frequency response 
+plt.figure(7, clear=True)
+plt.plot(w, np.abs(h))
+plt.title('Frequency Response of the Butterworth Band-Pass Filter')
+plt.xlabel('Frequency')
+plt.ylabel('Magnitude')
+
+# Impulse Response 
 # product a plot of the filters impulse response and frequency response 
 impulse = np.zeros(500)  # 500 samples
 impulse[0] = 1  # Delta function (impulse at t=0)
@@ -86,11 +97,10 @@ impulse[0] = 1  # Delta function (impulse at t=0)
 impulse_response = signal.lfilter(b, a, impulse)
 
 # Create a time vector corresponding to the impulse response
-time = np.arange(0, len(impulse_response)) / fs  # Time in seconds
-
+impulse_time = np.arange(0, len(impulse_response)) / fs  # Time in seconds
 # Plot the impulse response
-plt.figure(6, clear = True )
-plt.plot(time, impulse_response, color='blue')
+plt.figure(8, clear = True )
+plt.plot(impulse_time, impulse_response, color='blue')
 plt.title('Impulse Response of the Butterworth Band-Pass Filter')
 
 #%%
