@@ -53,92 +53,66 @@ plt.plot(wallsit_time, wallsit_data)
 
 plt.figure(5, clear = True)
 plt.plot(total_time, total_data)
-#%% Part 2 
+
+#%% PART 2: FILTERING
 
 # declare filter parameters
-order = 4 #above this the cutoffs look weird
-cutoff_frequency = (0.5,20)
+numtaps = 500
+cutoff_frequency = (0.5, 47.5)
 window = 'hann'
 filter_type = 'bandpass'
 
-# filter coefficients 
-h_t = signal.firwin(order, cutoff_frequency, window=window, pass_zero=filter_type, fs=fs)
-t_filter = np.arange(0, len(h_t)/fs,1/fs)
+# get filter coefficients 
+h_t = signal.firwin(numtaps, cutoff_frequency, window=window, pass_zero=filter_type, fs=fs)
+t_filter = np.arange(0, len(h_t)/fs, 1/fs)
+H_f = np.fft.rfft(h_t)
+f_filter = np.fft.rfftfreq(len(h_t), 1/fs)
 
-plt.figure(6, clear=True)
-plt.plot(t_filter, h_t)
-plt.title('Band-pass Filter')
+# demean data and apply filter
+rest_data_demeaned = rest_data - np.mean(rest_data)
+filtered_rest = np.convolve(rest_data_demeaned, h_t, mode='same')
 
-# Design the Butterworth band-pass filter
-b, a = signal.butter(order, cutoff_frequency, btype='bandpass', fs=fs)
+# converting raw data to freq 
+rest_freq = np.fft.rfft(rest_data_demeaned)
+f = np.fft.rfftfreq(len(rest_data),1/fs)
 
-# Apply the filter using filtfilt 
-filtered_rest = signal.filtfilt(b, a, plot_rest_data)
-filtered_mentalstress = signal.filtfilt(b, a, plot_mentalstress_data)
-filtered_wallsit = signal.filtfilt(b, a, plot_wallsit_data)
-filtered_relax = signal.filtfilt(b, a, plot_relax_data)
+# plotting
+plt.figure(1, clear=True)
 
-# FREQUENCY response 
-# Compute the frequency response
-w, h = signal.freqz(b, a)
-# plot frequency response 
-plt.figure(7, clear=True)
-plt.plot(w, np.abs(h))
-plt.title('Frequency Response of the Butterworth Band-Pass Filter')
-plt.xlabel('Frequency')
+# raw data in time domain
+plt.subplot(321)
+plt.plot(rest_time, rest_data_demeaned)
+plt.xlabel('Time (s)')
+plt.ylabel('Amplitude')
+plt.title('Raw Data (Demeaned)')
+
+# raw data in frequency domain
+plt.subplot(322)
+plt.plot(f, np.abs(rest_freq))
+plt.xlabel('Frequency (Hz)')
 plt.ylabel('Magnitude')
+plt.title('Signal in Frequency Domain')
 
-# Impulse Response 
-# product a plot of the filters impulse response and frequency response 
-impulse = np.zeros(500)  # 500 samples
-impulse[0] = 1  # Delta function (impulse at t=0)
+# filter in time domain
+plt.subplot(323)
+plt.plot(t_filter, h_t)
+plt.xlabel('Time (s)')
+plt.ylabel('Amplitude')
+plt.title('Impulse Response')
 
-# Apply the filter to the impulse signal
-impulse_response = signal.lfilter(b, a, impulse)
+# filter in frequency domain
+plt.subplot(324)
+plt.plot(f_filter, np.abs(H_f))
+plt.xlabel('Frequency (Hz)')
+plt.ylabel('Magnitude')
+plt.title('Frequency Response')
 
-# Create a time vector corresponding to the impulse response
-impulse_time = np.arange(0, len(impulse_response)) / fs  # Time in seconds
-# Plot the impulse response
-plt.figure(8, clear = True )
-plt.plot(impulse_time, impulse_response, color='blue')
-plt.title('Impulse Response of the Butterworth Band-Pass Filter')
-
-#%%
-
-# Plot original and filtered signals 
-"i dont think we need all of these lol so we can take some out eventually "
-"also the filter just smooths everything out but to see it you need to zoom in a little, idk if its perfect we can always change it"
-plt.figure(7, clear=True)
-plt.subplot(4,2,1)
-plt.plot(plot_rest_time, plot_rest_data, color = 'blue')
-plt.title('Original Rest Signal')
-plt.subplot(4,2,2)
-plt.plot(plot_rest_time, filtered_rest, color = 'green')
-plt.title('Filtered Rest Signal')
-
-plt.subplot(4,2,3)
-plt.plot(plot_mentalstress_time, plot_mentalstress_data, color = 'blue')
-plt.title('Original Mental Stress Signal')
-plt.subplot(4,2,4)
-plt.plot(plot_mentalstress_time, filtered_mentalstress, color = 'green')
-plt.title('Filtered Mental Stress Signal')
-
-plt.subplot(4,2,5)
-plt.plot(plot_wallsit_time, plot_wallsit_data, color = 'blue')
-plt.title('Original Wallsit Signal')
-plt.subplot(4,2,6)
-plt.plot(plot_wallsit_time, filtered_wallsit, color = 'green')
-plt.title('Filtered Wallsit Signal')
-
-plt.subplot(4,2,7)
-plt.plot(plot_relax_time, plot_relax_data, color = 'blue')
-plt.title('Original Relax Signal')
-plt.subplot(4,2,8)
-plt.plot(plot_relax_time, filtered_relax, color = 'green')
-plt.title('Filtered Relax Signal')
+# filtered data in time domain
+plt.subplot(325)
+plt.plot(rest_time, filtered_rest, color='orange')
+plt.xlabel('Time (s)')
+plt.ylabel('Amplitude')
+plt.title('Filtered Data')
 
 plt.tight_layout()
-
-
-
-#%% Part 3 
+plt.show()
