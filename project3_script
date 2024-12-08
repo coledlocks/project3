@@ -72,6 +72,15 @@ f_filter = np.fft.rfftfreq(len(h_t), 1/fs)
 rest_data_demeaned = rest_data - np.mean(rest_data)
 filtered_rest = np.convolve(rest_data_demeaned, h_t, mode='same')
 
+relax_data_demeaned = relax_data - np.mean(relax_data)
+filtered_relax = np.convolve(relax_data_demeaned, h_t, mode='same')
+
+mentalstress_data_demeaned = mentalstress_data - np.mean(mentalstress_data)
+filtered_mentalstress = np.convolve(mentalstress_data_demeaned, h_t, mode='same')
+
+wallsit_data_demeaned = wallsit_data - np.mean(wallsit_data)
+filtered_wallsit = np.convolve(wallsit_data_demeaned, h_t, mode='same')
+
 # converting raw data to freq 
 rest_freq = np.fft.rfft(rest_data_demeaned)
 f = np.fft.rfftfreq(len(rest_data),1/fs)
