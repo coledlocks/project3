@@ -33,4 +33,20 @@ def predict_beat_times(template_match, threshold):
     beat_samples = np.where((template_match[:-1] < threshold) & (template_match[1:] >= threshold))[0]
     return beat_samples
 
+#%% Part 4: 
+
+def calculate_hrv(beats, fs):
+    # calc IBI
+    ibi = (np.diff(beats)) / fs  # IBI is the difference between consecutive interpolated beat times
+
+    hrv = np.std(ibi) 
+    return ibi, hrv 
+
+def interp_timecourse(beats, ibi, fs, dt):
+    beat_times = beats[0:-1] / fs 
+    interp_time = np.arange(beat_times[0], beat_times[-1], dt)
+    interp = interp1d(beat_times, ibi, kind='linear', fill_value='extrapolate')
+    interp_ibi = interp(interp_time)
+    return interp_time, interp_ibi 
+    
     
