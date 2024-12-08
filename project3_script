@@ -215,4 +215,42 @@ plt.title("Detected Beats in Template Match of Wallsit Data ")
 plt.legend()
 
 plt.tight_layout()
+#%% Part 4: 
+# Define the interpolated timecourse (dt = 0.1 seconds)
+dt = 0.1  # Interpolation interval
+
+# beats in prev graphs 
+beats_rest = np.array(decimated_time_rst[beat_samples_rst])
+beats_wallsit = np.array(decimated_time_ws[beat_samples_ws])
+beats_mentalstress = np.array(decimated_time_ms[beat_samples_ms])
+beats_relax = np.array(decimated_time_rlx[beat_samples_rlx])
+
+# ibi_rest, hrv_rest = p3m.calculate_hrv(beat_samples_rst, fs)
+# ibi_relax, hrv_relax = p3m.calculate_hrv(beat_samples_rlx, fs)
+# ibi_wallsit, hrv_wallsit = p3m.calculate_hrv(beat_samples_ws, fs)
+# ibi_mentalstress, hrv_mentalstress = p3m.calculate_hrv(beat_samples_ms, fs)
+
+ibi_rest, hrv_rest = p3m.calculate_hrv(beats_rest, fs)
+ibi_relax, hrv_relax = p3m.calculate_hrv(beats_relax, fs)
+ibi_wallsit, hrv_wallsit = p3m.calculate_hrv(beats_wallsit, fs)
+ibi_mentalstress, hrv_mentalstress = p3m.calculate_hrv(beats_mentalstress, fs)
+
+# List of HRV values
+hrv_values = [hrv_rest, hrv_relax, hrv_wallsit, hrv_mentalstress]
+activities = ['Rest', 'Relax', 'Wall Sit', 'Mental Stress']
+
+# Plotting the bar graph
+plt.figure(17, clear = True) 
+plt.bar(activities, hrv_values, color=['blue', 'green', 'pink', 'orange'])
+plt.xlabel('Activity')
+plt.ylabel('HRV (ms)')
+plt.title('Heart Rate Variability (HRV) for Different Activities')
+plt.grid()
+
+# calc interp timecourse 
+interp_time_rest, interp_ibi_rest = p3m.interp_timecourse(beats_rest, ibi_rest, fs, dt)
+interp_time_relax, interp_ibi_relax = p3m.interp_timecourse(beats_relax, ibi_relax, fs, dt)
+interp_time_wallsit, interp_ibi_wallsit = p3m.interp_timecourse(beats_wallsit, ibi_wallsit, fs, dt)
+interp_time_mentalstress, interp_ibi_mentalstress = p3m.interp_timecourse(beats_mentalstress, ibi_mentalstress, fs, dt)
+
 
