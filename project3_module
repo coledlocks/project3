@@ -7,6 +7,8 @@ description
 """
 import numpy as np 
 
+#%% Part 1: 
+
 def load_data(file, fs):
     data = np.loadtxt(file) * 5/1023 
     data = data - np.mean(data) # remove DC offset, which is just an Arduino addition
@@ -17,5 +19,18 @@ def trim_data(data):
     trimmed_data = data[:2500]
     return trimmed_data
 
+#%% Part 3: 
+    
+def decimate_data(original_signal, decimation_factor):
+    decimated_signal = original_signal[::decimation_factor]
+    return decimated_signal
+
+def get_template_match(signal_voltage, template):
+    template_match = np.convolve(signal_voltage, template[::-1], mode='same')
+    return template_match
+
+def predict_beat_times(template_match, threshold):
+    beat_samples = np.where((template_match[:-1] < threshold) & (template_match[1:] >= threshold))[0]
+    return beat_samples
 
     
