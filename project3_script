@@ -126,7 +126,7 @@ plt.title('Filtered Data')
 plt.tight_layout()
 plt.show()
 
-#%% Part 3 
+#%%Part 3 : 
 # decimate 
 decimation_factor = 2
 decimated_dt = 1/(fs/decimation_factor)
@@ -152,11 +152,14 @@ decimated_time_ws = np.arange(0, len(decimated_signal_ws)/(fs/decimation_factor)
 start_index = 2 # Start index of the segment
 end_index = 3 # End index of the segment
 
+# wallsit 
+start_index_ws = 6
+end_index_ws = 7
 # Extract a segment to be used as the template
 template_rst = filtered_rest[start_index:end_index]
 template_rlx = filtered_relax[start_index:end_index]
 template_ms = filtered_mentalstress[start_index:end_index]
-template_ws = filtered_wallsit[start_index:end_index]
+template_ws = filtered_wallsit[start_index_ws:end_index_ws]
 
 # Find cross-correlation between raw signal and normal beat template 
 template_match_rst = p3m.get_template_match(decimated_signal_rst, template_rst)
@@ -173,9 +176,9 @@ template_match_time_ws = np.arange(0, len(template_match_ws))/(fs/decimation_fac
 
 # set threshold 
 threshold_rst = .04
-threshold_rlx = .1
+threshold_rlx = .099
 threshold_ms = .004
-threshold_ws = .01 
+threshold_ws = .04
 
 beat_samples_rst = p3m.predict_beat_times(template_match_rst, threshold_rst)
 beat_samples_rlx = p3m.predict_beat_times(template_match_rlx, threshold_rlx)
@@ -219,47 +222,62 @@ plt.plot(template_match_time_ws, template_match_ws, label="Normal Template Match
 plt.scatter(decimated_time_ws[beat_samples_ws], template_match_ws[beat_samples_ws], color='orange', marker='^', label='N (predicted)')
 plt.xlabel("Time (s)")
 plt.ylabel("Template Match Units (1/V)")
-plt.xlim(0,5)
+plt.xlim(5,10)
 plt.title("Detected Beats in Template Match of Wallsit Data ")
 plt.legend()
 
 plt.tight_layout()
+
+
 #%% Part 4: 
+# need to find out IBIs for each activity, then interpolate them to estimate missing beats
+# then need to calc one HRV measure for each activity 
+# then plot them as a bar plot 
+# then calculate interpolated timecourse of IBI at regular intervals of dt = 0.1 seconds 
+
+
 # Define the interpolated timecourse (dt = 0.1 seconds)
 dt = 0.1  # Interpolation interval
 
-# beats in prev graphs 
-beats_rest = np.array(decimated_time_rst[beat_samples_rst])
-beats_wallsit = np.array(decimated_time_ws[beat_samples_ws])
-beats_mentalstress = np.array(decimated_time_ms[beat_samples_ms])
-beats_relax = np.array(decimated_time_rlx[beat_samples_rlx])
+# beats in prev graphs TIMES (x vals )
+beats_rest = decimated_time_rst[beat_samples_rst] 
+beats_wallsit = decimated_time_ws[beat_samples_ws]
+beats_mentalstress = decimated_time_ms[beat_samples_ms]
+beats_relax = decimated_time_rlx[beat_samples_rlx]
 
-# ibi_rest, hrv_rest = p3m.calculate_hrv(beat_samples_rst, fs)
-# ibi_relax, hrv_relax = p3m.calculate_hrv(beat_samples_rlx, fs)
-# ibi_wallsit, hrv_wallsit = p3m.calculate_hrv(beat_samples_ws, fs)
-# ibi_mentalstress, hrv_mentalstress = p3m.calculate_hrv(beat_samples_ms, fs)
+# find IBI's (y values )
+IBI_rst = np.diff(beats_rest)
+IBI_ws = np.diff(beats_wallsit)
+IBI_ms = np.diff(beats_mentalstress)
+IBI_rlx = np.diff(beats_relax)
 
-ibi_rest, hrv_rest = p3m.calculate_hrv(beats_rest, fs)
-ibi_relax, hrv_relax = p3m.calculate_hrv(beats_relax, fs)
-ibi_wallsit, hrv_wallsit = p3m.calculate_hrv(beats_wallsit, fs)
-ibi_mentalstress, hrv_mentalstress = p3m.calculate_hrv(beats_mentalstress, fs)
+# interpolate IBI's 
+# make new time 
+xnew_rest = np.arange(0, beats_rest[-1], dt)
+xnew_ws = np.arange(0, beats_wallsit[-1], dt)
+xnew_ms = np.arange(0, beats_mentalstress[-1], dt)
+xnew_relax = np.arange(0, beats_relax[-1], dt) 
 
-# List of HRV values
-hrv_values = [hrv_rest, hrv_relax, hrv_wallsit, hrv_mentalstress]
-activities = ['Rest', 'Relax', 'Wall Sit', 'Mental Stress']
+# Interpolate (timecourse of IBI's)
+interp_rst = np.interp(xnew_rest, beats_rest[1:], IBI_rst) 
+interp_ws = np.interp(xnew_ws, beats_wallsit[1:], IBI_ws) 
+interp_ms = np.interp(xnew_ms, beats_mentalstress[1:], IBI_ms)  
+interp_rlx = np.interp(xnew_relax, beats_relax[1:], IBI_rlx) 
 
-# Plotting the bar graph
-plt.figure(17, clear = True) 
-plt.bar(activities, hrv_values, color=['blue', 'green', 'pink', 'orange'])
+# std to find hrv
+hrv_rst = np.std(IBI_rst)
+hrv_ws = np.std(IBI_ws)
+hrv_ms = np.std(IBI_ms)
+hrv_rlx = np.std(IBI_rlx)
+
+# List of the HRV values and corresponding labels
+hrv_values = [hrv_rst, hrv_ws, hrv_ms, hrv_rlx]
+activities = ['Rest', 'Wall Sit', 'Mental Stress', 'Relax']
+
+# Create a bar plot
+plt.figure(15, clear = True)
+plt.bar(activities, hrv_values, color=['blue', 'green', 'pink', 'purple'])
 plt.xlabel('Activity')
-plt.ylabel('HRV (ms)')
-plt.title('Heart Rate Variability (HRV) for Different Activities')
+plt.ylabel('HRV Value (s)')
+plt.title('HRV Values for Different Activities')
 plt.grid()
-
-# calc interp timecourse 
-interp_time_rest, interp_ibi_rest = p3m.interp_timecourse(beats_rest, ibi_rest, fs, dt)
-interp_time_relax, interp_ibi_relax = p3m.interp_timecourse(beats_relax, ibi_relax, fs, dt)
-interp_time_wallsit, interp_ibi_wallsit = p3m.interp_timecourse(beats_wallsit, ibi_wallsit, fs, dt)
-interp_time_mentalstress, interp_ibi_mentalstress = p3m.interp_timecourse(beats_mentalstress, ibi_mentalstress, fs, dt)
-
-
