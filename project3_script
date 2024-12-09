@@ -1,58 +1,80 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Created on Tue Dec  3 10:44:58 2024
-
-@author: coledlocks
+project3_script
+This script builds code to load data, trim data, filter noisy ECG signals, detect heartbeats in the signals using template matching, calculating HRV and IBI of the signals, and calculating the HRV frequency band power. 
+Authors: Cole Drozdek and Jillian Griffith 
 """
 
 # importing related packages
 import project3_module as p3m
 import numpy as np
 from matplotlib import pyplot as plt
+from scipy import signal
 
-#%% Part 1 
+#%% PART 1: COLLECT & LOAD DATA
 
-fs = 500 # sampling rate
+fs = 500 # sampling rate 
+# load data 
+rest_data, rest_time = p3m.load_data('rest.txt', 500)
+relax_data, relax_time = p3m.load_data('relax.txt', 500) #should we try to cut off the first few seconds 
+mentalstress_data, mentalstress_time = p3m.load_data('mentalstress.txt', 500)
+wallsit_data, wallsit_time = p3m.load_data('wallsit.txt', 500)
 
-# loading the data
-rest_data, rest_time = p3m.load_data('rest.txt', fs)
-relax_data, relax_time = p3m.load_data('relax.txt', fs)
-mentalstress_data, mentalstress_time = p3m.load_data('mentalstress.txt', fs)
-wallsit_data, wallsit_time = p3m.load_data('wallsit.txt', fs)
+# Trim data 
+plot_rest_time = p3m.trim_data(rest_time)
+plot_rest_data = p3m.trim_data(rest_data)
 
-# trimming the data to 5 seconds
-rest_data = p3m.trim_data_to_5_seconds(rest_data)
-rest_time = p3m.trim_data_to_5_seconds(rest_time)
+plot_relax_time = p3m.trim_data(relax_time)
+plot_relax_data = p3m.trim_data(relax_data)
 
-relax_data = p3m.trim_data_to_5_seconds(relax_data)
-relax_time = p3m.trim_data_to_5_seconds(relax_time)
+plot_mentalstress_time = p3m.trim_data(mentalstress_time)
+plot_mentalstress_data = p3m.trim_data(mentalstress_data)
 
-mentalstress_data = p3m.trim_data_to_5_seconds(mentalstress_data)
-mentalstress_time = p3m.trim_data_to_5_seconds(mentalstress_time)
-
-wallsit_data = p3m.trim_data_to_5_seconds(wallsit_data)
-wallsit_time = p3m.trim_data_to_5_seconds(wallsit_time)
-
-# concatenating the data
-total_data = np.concatenate((rest_data, relax_data, mentalstress_data, wallsit_data))
-total_time = np.arange(0, len(total_data)/fs, 1/fs)
+plot_wallsit_time = p3m.trim_data(wallsit_time)
+plot_wallsit_data = p3m.trim_data(wallsit_data)
 
 # Plots 
-plt.figure(1, clear = True) 
-plt.plot(rest_time, rest_data)
+plt.figure(1, clear = True)
+plt.title('Trimmed Data')
+plt.subplot(2,2,1)
+plt.plot(plot_rest_time, plot_rest_data)
+plt.title('Rest Data')
+plt.xlabel('Time(s)')
+plt.ylabel('Voltage (V)')
 
-plt.figure(2, clear = True) 
-plt.plot(relax_time, relax_data)
+plt.subplot(2,2,2)
+plt.plot(plot_relax_time, plot_relax_data)
+plt.title('Relax Data')
+plt.xlabel('Time(s)')
+plt.ylabel('Voltage (V)')
 
-plt.figure(3, clear = True )
-plt.plot(mentalstress_time, mentalstress_data)
+plt.subplot(2,2,3)
+plt.plot(plot_mentalstress_time, plot_mentalstress_data)
+plt.title('Mental Stress Data')
+plt.xlabel('Time(s)')
+plt.ylabel('Voltage (?)')
 
-plt.figure(4, clear = True) 
-plt.plot(wallsit_time, wallsit_data)
-
-plt.figure(5, clear = True)
+plt.subplot(2,2,4)
+plt.plot(plot_wallsit_time, plot_wallsit_data)
+plt.title('Wallsit Data')
+plt.xlabel('Time(s)')
+plt.ylabel('Voltage (V)')
+# Save figure 
+plt.savefig('trimmed_data.pdf', format='pdf')
+plt.show()
+plt.tight_layout()
+plt.figure(2, clear = True)
+total_data = np.concatenate((plot_rest_data, plot_relax_data, plot_mentalstress_data, plot_wallsit_data))
+total_time = np.arange(0, len(total_data)/fs, 1/fs)
 plt.plot(total_time, total_data)
+plt.title('All Data')
+plt.xlabel('Time(s)')
+plt.ylabel('Voltage (V)')
+
+# Save figure 
+plt.savefig('original_vs_decimated_signal.pdf', format='pdf')
+plt.show()
 
 #%% PART 2: FILTERING
 
@@ -173,7 +195,9 @@ beat_samples_ms = p3m.predict_beat_times(template_match_ms, threshold_ms)
 beat_samples_ws = p3m.predict_beat_times(template_match_ws, threshold_ws)
 
 # Plot detected beats on top of template match REST
-plt.figure(11, clear=True)
+plt.figure(4, clear=True)
+plt.title("Heart Beat Detection")
+
 plt.subplot(2,2,1)
 plt.plot(template_match_time_rst, template_match_rst, label="Normal Template Match")
 plt.scatter(time_rst[beat_samples_rst], template_match_rst[beat_samples_rst], color='orange', marker='^', label='N (predicted)')
@@ -215,6 +239,10 @@ plt.legend()
 
 plt.tight_layout()
 
+# Save figure 
+plt.savefig('heart_beat_detection.pdf', format='pdf')
+plt.show()
+
 #%% PART 4: CALCULATE HEART RATE VARIABILITY 
 dt = 0.1 
 # beats in prev graphs TIMES (x vals )
@@ -223,18 +251,22 @@ beats_wallsit = time_ws[beat_samples_ws]
 beats_mentalstress = time_ms[beat_samples_ms]
 beats_relax = time_rlx[beat_samples_rlx]
 
-IBI_rst_new, interp_rst_new, hrv_rst_new = p3m.calculate_hrv(beats_rest, 0.1)
-IBI_ws_new, interp_ws_new, hrv_ws_new = p3m.calculate_hrv(beats_wallsit, 0.1)
-IBI_ms_new, interp_ms_new, hrv_ms_new = p3m.calculate_hrv(beats_mentalstress, 0.1)
-IBI_rlx_new, interp_rlx_new, hrv_rlx_new = p3m.calculate_hrv(beats_relax, 0.1)
+IBI_rst, interp_rst, hrv_rst = p3m.calculate_hrv(beats_rest, 0.1)
+IBI_ws, interp_ws, hrv_ws = p3m.calculate_hrv(beats_wallsit, 0.1)
+IBI_ms, interp_ms, hrv_ms = p3m.calculate_hrv(beats_mentalstress, 0.1)
+IBI_rlx, interp_rlx, hrv_rlx = p3m.calculate_hrv(beats_relax, 0.1)
 
-hrv_values = [hrv_rst_new, hrv_ws_new, hrv_ms_new, hrv_rlx_new]
+hrv_values = [hrv_rst, hrv_ws, hrv_ms, hrv_rlx]
 activities = ['Rest', 'Wall Sit', 'Mental Stress', 'Relax']
 
 # Create a bar plot
-plt.figure(16, clear = True)
+plt.figure(5, clear = True)
 plt.bar(activities, hrv_values, color=['blue', 'green', 'pink', 'purple'])
 plt.xlabel('Activity')
 plt.ylabel('HRV Value (s)')
 plt.title('HRV Values for Different Activities')
 plt.grid()
+
+# Save figure 
+plt.savefig('HRV_values_for_different_activities.pdf', format='pdf')
+plt.show()
