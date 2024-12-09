@@ -126,53 +126,40 @@ plt.title('Filtered Data')
 plt.tight_layout()
 plt.show()
 
-#%%Part 3 : 
-# decimate 
-decimation_factor = 2
-decimated_dt = 1/(fs/decimation_factor)
-
-# decimate signals
-decimated_signal_rst = p3m.decimate_data(filtered_rest, decimation_factor)
-original_time_rst = np.arange(0, len(filtered_rest)/fs, 1/fs)
-decimated_time_rst = np.arange(0, len(decimated_signal_rst)/(fs/decimation_factor), decimated_dt)
-
-decimated_signal_rlx = p3m.decimate_data(filtered_relax, decimation_factor)
-original_time_rlx = np.arange(0, len(filtered_relax)/fs, 1/fs)
-decimated_time_rlx = np.arange(0, len(decimated_signal_rlx)/(fs/decimation_factor), decimated_dt)
-
-decimated_signal_ms = p3m.decimate_data(filtered_mentalstress, decimation_factor)
-original_time_ms = np.arange(0, len(filtered_mentalstress)/fs, 1/fs)
-decimated_time_ms = np.arange(0, len(decimated_signal_ms)/(fs/decimation_factor), decimated_dt)
-
-decimated_signal_ws = p3m.decimate_data(filtered_wallsit, decimation_factor)
-original_time_ws = np.arange(0, len(filtered_wallsit)/fs, 1/fs)
-decimated_time_ws = np.arange(0, len(decimated_signal_ws)/(fs/decimation_factor), decimated_dt)
+#%% PART 3: DETECT HEARTBEATS
 
 # Define start and end points of template 
 start_index = 2 # Start index of the segment
 end_index = 3 # End index of the segment
 
-# wallsit 
+# wallsit index
 start_index_ws = 6
 end_index_ws = 7
+
 # Extract a segment to be used as the template
 template_rst = filtered_rest[start_index:end_index]
 template_rlx = filtered_relax[start_index:end_index]
 template_ms = filtered_mentalstress[start_index:end_index]
 template_ws = filtered_wallsit[start_index_ws:end_index_ws]
 
+# time 
+time_rst = np.arange(0, len(filtered_rest)) / fs
+time_rlx = np.arange(0, len(filtered_relax)) / fs
+time_ws = np.arange(0, len(filtered_wallsit)) / fs
+time_ms = np.arange(0, len(filtered_mentalstress)) / fs
+
 # Find cross-correlation between raw signal and normal beat template 
-template_match_rst = p3m.get_template_match(decimated_signal_rst, template_rst)
-template_match_time_rst = np.arange(0, len(template_match_rst))/(fs/decimation_factor)
+template_match_rst = p3m.get_template_match(filtered_rest, template_rst)
+template_match_time_rst = np.arange(0, len(template_match_rst))/(fs)
 
-template_match_rlx = p3m.get_template_match(decimated_signal_rlx, template_rlx)
-template_match_time_rlx = np.arange(0, len(template_match_rlx))/(fs/decimation_factor)
+template_match_rlx = p3m.get_template_match(filtered_relax, template_rlx)
+template_match_time_rlx = np.arange(0, len(template_match_rlx))/(fs)
 
-template_match_ms = p3m.get_template_match(decimated_signal_ms, template_ms)
-template_match_time_ms = np.arange(0, len(template_match_ms))/(fs/decimation_factor)
+template_match_ms = p3m.get_template_match(filtered_mentalstress, template_ms)
+template_match_time_ms = np.arange(0, len(template_match_ms))/(fs)
 
-template_match_ws = p3m.get_template_match(decimated_signal_ws, template_ws)
-template_match_time_ws = np.arange(0, len(template_match_ws))/(fs/decimation_factor)
+template_match_ws = p3m.get_template_match(filtered_wallsit, template_ws)
+template_match_time_ws = np.arange(0, len(template_match_ws))/(fs)
 
 # set threshold 
 threshold_rst = .04
@@ -189,7 +176,7 @@ beat_samples_ws = p3m.predict_beat_times(template_match_ws, threshold_ws)
 plt.figure(11, clear=True)
 plt.subplot(2,2,1)
 plt.plot(template_match_time_rst, template_match_rst, label="Normal Template Match")
-plt.scatter(decimated_time_rst[beat_samples_rst], template_match_rst[beat_samples_rst], color='orange', marker='^', label='N (predicted)')
+plt.scatter(time_rst[beat_samples_rst], template_match_rst[beat_samples_rst], color='orange', marker='^', label='N (predicted)')
 plt.xlabel("Time (s)")
 plt.ylabel("Template Match Units (1/V)")
 plt.xlim(0,5)
@@ -199,7 +186,7 @@ plt.legend()
 # Plot relax 
 plt.subplot(2,2,2)
 plt.plot(template_match_time_rlx, template_match_rlx, label="Normal Template Match")
-plt.scatter(decimated_time_rlx[beat_samples_rlx], template_match_rlx[beat_samples_rlx], color='orange', marker='^', label='N (predicted)')
+plt.scatter(time_rlx[beat_samples_rlx], template_match_rlx[beat_samples_rlx], color='orange', marker='^', label='N (predicted)')
 plt.xlabel("Time (s)")
 plt.ylabel("Template Match Units (1/V)")
 plt.xlim(2,5)
@@ -209,7 +196,7 @@ plt.legend()
 # plot mentalstress 
 plt.subplot(2,2,3)
 plt.plot(template_match_time_ms, template_match_ms, label="Normal Template Match")
-plt.scatter(decimated_time_ms[beat_samples_ms], template_match_ms[beat_samples_ms], color='orange', marker='^', label='N (predicted)')
+plt.scatter(time_ms[beat_samples_ms], template_match_ms[beat_samples_ms], color='orange', marker='^', label='N (predicted)')
 plt.xlabel("Time (s)")
 plt.ylabel("Template Match Units (1/V)")
 plt.xlim(0,5)
@@ -219,7 +206,7 @@ plt.legend()
 # plot wallsit 
 plt.subplot(2,2,4)
 plt.plot(template_match_time_ws, template_match_ws, label="Normal Template Match")
-plt.scatter(decimated_time_ws[beat_samples_ws], template_match_ws[beat_samples_ws], color='orange', marker='^', label='N (predicted)')
+plt.scatter(time_ws[beat_samples_ws], template_match_ws[beat_samples_ws], color='orange', marker='^', label='N (predicted)')
 plt.xlabel("Time (s)")
 plt.ylabel("Template Match Units (1/V)")
 plt.xlim(5,10)
@@ -228,54 +215,24 @@ plt.legend()
 
 plt.tight_layout()
 
-
-#%% Part 4: 
-# need to find out IBIs for each activity, then interpolate them to estimate missing beats
-# then need to calc one HRV measure for each activity 
-# then plot them as a bar plot 
-# then calculate interpolated timecourse of IBI at regular intervals of dt = 0.1 seconds 
-
-
-# Define the interpolated timecourse (dt = 0.1 seconds)
-dt = 0.1  # Interpolation interval
-
+#%% PART 4: CALCULATE HEART RATE VARIABILITY 
+dt = 0.1 
 # beats in prev graphs TIMES (x vals )
-beats_rest = decimated_time_rst[beat_samples_rst] 
-beats_wallsit = decimated_time_ws[beat_samples_ws]
-beats_mentalstress = decimated_time_ms[beat_samples_ms]
-beats_relax = decimated_time_rlx[beat_samples_rlx]
+beats_rest = time_rst[beat_samples_rst] 
+beats_wallsit = time_ws[beat_samples_ws]
+beats_mentalstress = time_ms[beat_samples_ms]
+beats_relax = time_rlx[beat_samples_rlx]
 
-# find IBI's (y values )
-IBI_rst = np.diff(beats_rest)
-IBI_ws = np.diff(beats_wallsit)
-IBI_ms = np.diff(beats_mentalstress)
-IBI_rlx = np.diff(beats_relax)
+IBI_rst_new, interp_rst_new, hrv_rst_new = p3m.calculate_hrv(beats_rest, 0.1)
+IBI_ws_new, interp_ws_new, hrv_ws_new = p3m.calculate_hrv(beats_wallsit, 0.1)
+IBI_ms_new, interp_ms_new, hrv_ms_new = p3m.calculate_hrv(beats_mentalstress, 0.1)
+IBI_rlx_new, interp_rlx_new, hrv_rlx_new = p3m.calculate_hrv(beats_relax, 0.1)
 
-# interpolate IBI's 
-# make new time 
-xnew_rest = np.arange(0, beats_rest[-1], dt)
-xnew_ws = np.arange(0, beats_wallsit[-1], dt)
-xnew_ms = np.arange(0, beats_mentalstress[-1], dt)
-xnew_relax = np.arange(0, beats_relax[-1], dt) 
-
-# Interpolate (timecourse of IBI's)
-interp_rst = np.interp(xnew_rest, beats_rest[1:], IBI_rst) 
-interp_ws = np.interp(xnew_ws, beats_wallsit[1:], IBI_ws) 
-interp_ms = np.interp(xnew_ms, beats_mentalstress[1:], IBI_ms)  
-interp_rlx = np.interp(xnew_relax, beats_relax[1:], IBI_rlx) 
-
-# std to find hrv
-hrv_rst = np.std(IBI_rst)
-hrv_ws = np.std(IBI_ws)
-hrv_ms = np.std(IBI_ms)
-hrv_rlx = np.std(IBI_rlx)
-
-# List of the HRV values and corresponding labels
-hrv_values = [hrv_rst, hrv_ws, hrv_ms, hrv_rlx]
+hrv_values = [hrv_rst_new, hrv_ws_new, hrv_ms_new, hrv_rlx_new]
 activities = ['Rest', 'Wall Sit', 'Mental Stress', 'Relax']
 
 # Create a bar plot
-plt.figure(15, clear = True)
+plt.figure(16, clear = True)
 plt.bar(activities, hrv_values, color=['blue', 'green', 'pink', 'purple'])
 plt.xlabel('Activity')
 plt.ylabel('HRV Value (s)')
