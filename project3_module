@@ -7,36 +7,119 @@ description
 """
 import numpy as np 
 
-#%% Part 1: 
-
+#%%Part 1: 
+    
 def load_data(file, fs):
+    """
+    Loads data from file, removes the DC offset from the Arduino addition, and created time array to match data. 
+
+    Parameters
+    ----------
+    file : file
+        file being imported.
+    fs : float
+        sampling frequency.
+
+    Returns
+    -------
+    data : array of floats 1 x samples 
+        data from file with removed DC offset.
+    time : array of floats 1 x samples 
+        array to plot data against to visualize.
+
+    """
     data = np.loadtxt(file) * 5/1023 
     data = data - np.mean(data) # remove DC offset, which is just an Arduino addition
     time = np.arange(0, len(data)/fs, 1/fs)
     return data, time
 
 def trim_data(data):
-    trimmed_data = data[:2500]
+    """
+    Trims data to only show 5 seconds of the data. 
+
+    Parameters
+    ----------
+    data : array of floats 1 x samples 
+        data from file with removed DC offset.
+
+    Returns
+    -------
+    trimmed_data : array of floats 1 x 2500 
+        data showing only 5 seconds of signal.
+
+    """
+    trimmed_data = data[1000:3500]
     return trimmed_data
+
 
 #%% Part 3: 
     
-def get_template_match(signal_voltage, template):
-    template_match = np.convolve(signal_voltage, template[::-1], mode='same')
+def get_template_match(ecg_data, template):
+    """
+    Uses cross-correlation to see how often two signals overlap. 
+
+    Parameters
+    ----------
+    ecg_data : array of floats 1 x samples 
+        raw signal voltage.
+    template : array of floats 1 x 1
+        set template created from indexing start and stop beat.
+
+    Returns
+    -------
+    template_match : array of floats 1 x samples 
+        cross-correlation of the data and the template.
+
+    """
+    template_match = np.convolve(ecg_data, template[::-1], mode='same')
     return template_match
 
 def predict_beat_times(template_match, threshold):
+    """
+    Creates an array of where the samples and the template match exceed the threshold by finding points when the current sample is above the threshold and the previous sample is below the threshold. 
+
+    Parameters
+    ----------
+    template_match : array of floats 1 x samples
+        discrete cross-correlation of the raw data and the template.
+    threshold : float
+        set threshold.
+
+    Returns
+    -------
+    beat_samples : array of ints 1 x # of beats detected
+        array of samples where the template match first exceeded the threshold.
+
+    """
     beat_samples = np.where((template_match[:-1] < threshold) & (template_match[1:] >= threshold))[0]
     return beat_samples
 
 #%% Part 4: 
 
-def calculate_hrv(beats, dt=0.1):
-    ibi = (np.diff(beats))
-    xnew = np.arange(0, beats[-1], dt)
-    interp = np.interp(xnew, beats[1:], ibi)
+def calculate_hrv(beat_samples, dt=0.1):
+    """
+    Calculates IBI, interpolation, and the HRV of given beats.  
+
+    Parameters
+    ----------
+    beat_samples : array of floats 1 x # of beats detected 
+        DESCRIPTION.
+    dt : float, optional
+        interval of time. The default is 0.1.
+
+    Returns
+    -------
+    ibi : array of floats 1 x (beat_samples - 1)
+        inter-beat-interval, the time between each sample.
+    interp : array of floats 1 x # of interp samples created 
+        fills in the gaps of where beats may not have been detected, makes them regularly spaced.
+    hrv : float
+        calculated heart rate variability, standard deviation of ibi.
+
+    """
+    ibi = (np.diff(beat_samples))
+    xnew = np.arange(0, beat_samples[-1], dt)
+    interp = np.interp(xnew, beat_samples[1:], ibi)
     hrv = np.std(ibi)
     return ibi, interp, hrv 
 
-
-    
