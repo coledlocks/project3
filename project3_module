@@ -2,8 +2,8 @@
 # -*- coding: utf-8 -*-
 """
 project3_module.py
-description
-@author: jilliangriffith
+This module provides functions that perform loading data, trimming data, template matching to detect beats, and calculating the IBI, interpolation, and HRV. 
+Authors: Cole Drozdek and Jillian Griffith 
 """
 import numpy as np 
 
