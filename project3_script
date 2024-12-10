@@ -10,7 +10,6 @@ Authors: Cole Drozdek and Jillian Griffith
 import project3_module as p3m
 import numpy as np
 from matplotlib import pyplot as plt
-from scipy import signal
 
 #%% PART 1: COLLECT & LOAD DATA
 
@@ -60,10 +59,12 @@ plt.plot(plot_wallsit_time, plot_wallsit_data)
 plt.title('Wallsit Data')
 plt.xlabel('Time(s)')
 plt.ylabel('Voltage (V)')
+
+plt.tight_layout()
+
 # Save figure 
 plt.savefig('trimmed_data.pdf', format='pdf')
-plt.show()
-plt.tight_layout()
+
 plt.figure(2, clear = True)
 total_data = np.concatenate((plot_rest_data, plot_relax_data, plot_mentalstress_data, plot_wallsit_data))
 total_time = np.arange(0, len(total_data)/fs, 1/fs)
@@ -78,75 +79,21 @@ plt.show()
 
 #%% PART 2: FILTERING
 
+fs = 500 # sampling rate
+
 # declare filter parameters
 numtaps = 500
 cutoff_frequency = (0.5, 47.5)
 window = 'hann'
 filter_type = 'bandpass'
 
-# get filter coefficients 
-h_t = signal.firwin(numtaps, cutoff_frequency, window=window, pass_zero=filter_type, fs=fs)
-t_filter = np.arange(0, len(h_t)/fs, 1/fs)
-H_f = np.fft.rfft(h_t)
-f_filter = np.fft.rfftfreq(len(h_t), 1/fs)
 
-# demean data and apply filter
-rest_data_demeaned = rest_data - np.mean(rest_data)
-filtered_rest = np.convolve(rest_data_demeaned, h_t, mode='same')
+# apply the filter to all of the raw data
+filtered_rest = p3m.filter_data(numtaps, cutoff_frequency, window, filter_type, fs, rest_data, rest_time, 'filtered_rest')
+filtered_relax = p3m.filter_data(numtaps, cutoff_frequency, window, filter_type, fs, relax_data, relax_time, 'filtered_relax')
+filtered_mentalstress = p3m.filter_data(numtaps, cutoff_frequency, window, filter_type, fs, mentalstress_data, mentalstress_time, 'filtered_mentalstress')
+filtered_wallsit = p3m.filter_data(numtaps, cutoff_frequency, window, filter_type, fs, wallsit_data, wallsit_time, 'filtered_wallsit')
 
-relax_data_demeaned = relax_data - np.mean(relax_data)
-filtered_relax = np.convolve(relax_data_demeaned, h_t, mode='same')
-
-mentalstress_data_demeaned = mentalstress_data - np.mean(mentalstress_data)
-filtered_mentalstress = np.convolve(mentalstress_data_demeaned, h_t, mode='same')
-
-wallsit_data_demeaned = wallsit_data - np.mean(wallsit_data)
-filtered_wallsit = np.convolve(wallsit_data_demeaned, h_t, mode='same')
-
-# converting raw data to freq 
-rest_freq = np.fft.rfft(rest_data_demeaned)
-f = np.fft.rfftfreq(len(rest_data),1/fs)
-
-# plotting
-plt.figure(1, clear=True)
-
-# raw data in time domain
-plt.subplot(321)
-plt.plot(rest_time, rest_data_demeaned)
-plt.xlabel('Time (s)')
-plt.ylabel('Amplitude')
-plt.title('Raw Data (Demeaned)')
-
-# raw data in frequency domain
-plt.subplot(322)
-plt.plot(f, np.abs(rest_freq))
-plt.xlabel('Frequency (Hz)')
-plt.ylabel('Magnitude')
-plt.title('Signal in Frequency Domain')
-
-# filter in time domain
-plt.subplot(323)
-plt.plot(t_filter, h_t)
-plt.xlabel('Time (s)')
-plt.ylabel('Amplitude')
-plt.title('Impulse Response')
-
-# filter in frequency domain
-plt.subplot(324)
-plt.plot(f_filter, np.abs(H_f))
-plt.xlabel('Frequency (Hz)')
-plt.ylabel('Magnitude')
-plt.title('Frequency Response')
-
-# filtered data in time domain
-plt.subplot(325)
-plt.plot(rest_time, filtered_rest, color='orange')
-plt.xlabel('Time (s)')
-plt.ylabel('Amplitude')
-plt.title('Filtered Data')
-
-plt.tight_layout()
-plt.show()
 
 #%% PART 3: DETECT HEARTBEATS
 
@@ -268,5 +215,99 @@ plt.title('HRV Values for Different Activities')
 plt.grid()
 
 # Save figure 
-plt.savefig('HRV_values_for_different_activities.pdf', format='pdf')
+plt.savefig('hrv_values_for_different_activities.pdf', format='pdf')
 plt.show()
+
+#%% PART 5: GET HRV FREQUENCY BAND POWER
+
+# sampling frequency from the linear interpolation
+fs = 1/dt
+
+# calculating the power ratios and extracting data for plotting/graphing
+power_ratio_rst, freq_low_rst, freq_high_rst, power_low_rst, power_high_rst = p3m.calculate_ratio(interp_rst, fs)
+power_ratio_rlx, freq_low_rlx, freq_high_rlx, power_low_rlx, power_high_rlx = p3m.calculate_ratio(interp_rlx, fs)
+power_ratio_ms, freq_low_ms, freq_high_ms, power_low_ms, power_high_ms = p3m.calculate_ratio(interp_ms, fs)
+power_ratio_ws, freq_low_ws, freq_high_ws, power_low_ws, power_high_ws = p3m.calculate_ratio(interp_ws, fs)
+
+# plotting the LF and HF bands for each of the activities
+plt.figure(6, clear=True)
+
+# resting magnitude
+plt.subplot(221)
+plt.fill_between(freq_low_rst, power_low_rst, color = 'orange', label = 'LF Band', alpha = 0.5)
+plt.fill_between(freq_high_rst, power_high_rst, label = 'HF Band', alpha = 0.5)
+plt.xlabel('Frequency (Hz)')
+plt.ylabel('Power')
+plt.title('Rest')
+plt.xlim(0.04, 0.4)
+plt.grid()
+plt.legend()
+
+# relaxing magnitude
+plt.subplot(222)
+plt.fill_between(freq_low_rlx, power_low_rlx, color = 'orange', label = 'LF Band', alpha = 0.5)
+plt.fill_between(freq_high_rlx, power_high_rlx, label = 'HF Band', alpha = 0.5)
+plt.xlabel('Frequency (Hz)')
+plt.ylabel('Power')
+plt.title('Relax')
+plt.xlim(0.04, 0.4)
+plt.grid()
+plt.legend()
+
+# mental stress magnitude
+plt.subplot(223)
+plt.fill_between(freq_low_ms, power_low_ms, color = 'orange', label = 'LF Band', alpha = 0.5)
+plt.fill_between(freq_high_ms, power_high_ms, label = 'HF Band', alpha = 0.5)
+plt.xlabel('Frequency (Hz)')
+plt.ylabel('Power')
+plt.title('Mental Stress')
+plt.xlim(0.04, 0.4)
+plt.grid()
+plt.legend()
+
+# wallsit magnitude
+plt.subplot(224)
+plt.fill_between(freq_low_ws, power_low_ws, color = 'orange', label = 'LF Band', alpha = 0.5)
+plt.fill_between(freq_high_ws, power_high_ws, label = 'HF Band', alpha = 0.5)
+plt.xlabel('Frequency (Hz)')
+plt.ylabel('Power')
+plt.title('Wallsit')
+plt.xlim(0.04, 0.4)
+plt.grid()
+plt.legend()
+
+plt.suptitle('Magnitudes of Activities')
+plt.tight_layout()
+
+# Save figure 
+plt.savefig('magnitudes_of_different_activities.pdf', format='pdf')
+plt.show()
+
+# compiling a list of ratios for plotting
+ratios = [power_ratio_rst, power_ratio_rlx, power_ratio_ms, power_ratio_ws] # testing if the resting ratio is working
+
+# creating bar graph of ratios
+plt.figure(7, clear=True)
+plt.bar(activities, ratios, color=['blue', 'green', 'pink', 'purple'])
+plt.xlabel('Activity')
+plt.ylabel('Power Ratio Value')
+plt.title('Power Ratio Values for Different Activities')
+plt.grid()
+
+# Save figure 
+plt.savefig('power_ratios_for_different_activities.pdf', format='pdf')
+plt.show()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
