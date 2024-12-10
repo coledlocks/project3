@@ -1,3 +1,4 @@
+
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
@@ -6,9 +7,11 @@ This module provides functions that perform loading data, trimming data, templat
 Authors: Cole Drozdek and Jillian Griffith 
 """
 import numpy as np 
+from matplotlib import pyplot as plt
+from scipy import signal
 
-#%%Part 1: 
-    
+#%% Part 1: 
+
 def load_data(file, fs):
     """
     Loads data from file, removes the DC offset from the Arduino addition, and created time array to match data. 
@@ -28,9 +31,12 @@ def load_data(file, fs):
         array to plot data against to visualize.
 
     """
+    # loading the data
     data = np.loadtxt(file) * 5/1023 
     data = data - np.mean(data) # remove DC offset, which is just an Arduino addition
     time = np.arange(0, len(data)/fs, 1/fs)
+    
+    # return statement
     return data, time
 
 def trim_data(data):
@@ -48,13 +54,105 @@ def trim_data(data):
         data showing only 5 seconds of signal.
 
     """
-    trimmed_data = data[1000:3500]
+    # trimming data
+    trimmed_data = data[:2500]
+    
+    # return statement
     return trimmed_data
 
+#%% Part 2:
+    
+def filter_data(numtaps, cutoff_frequency, window, filter_type, fs, raw_data, time):
+    """
+    
+
+    Parameters
+    ----------
+    numtaps : int
+        number of filter coefficients.
+    cutoff_frequency : tuple
+        the high and low frequencies for the filter to cutoff at.
+    window : str
+        type of window used for filtering.
+    filter_type : str
+        type of filter being used.
+    fs : int
+        sampling rate of the data.
+    raw_data : array of floats, size:(n,), where n is the data read by the ecg
+        an array of the raw data to be filtered.
+    time : array of floats, size:(n,), where n is the time the ecg data occurred
+        time array for the raw data.
+
+    Returns
+    -------
+    filtered_data : array of floats, size:(n,), where n is the filtered ecg data
+        an array of the newly filtered data.
+
+    """
+    
+    # get filter coefficients 
+    h_t = signal.firwin(numtaps, cutoff_frequency, window=window, pass_zero=filter_type, fs=fs)
+    t_filter = np.arange(0, len(h_t)/fs, 1/fs)
+    H_f = np.fft.rfft(h_t)
+    f_filter = np.fft.rfftfreq(len(h_t), 1/fs)
+    
+    # demean data and apply filter
+    raw_data_demeaned = raw_data - np.mean(raw_data)
+    filtered_data = np.convolve(raw_data_demeaned, h_t, mode='same')
+    
+    # converting raw data to freq 
+    raw_freq = np.fft.rfft(raw_data_demeaned)
+    f = np.fft.rfftfreq(len(raw_data),1/fs)
+
+    # plotting
+    plt.figure(6, clear=True)
+
+    # raw data in time domain
+    plt.subplot(321)
+    plt.plot(time, raw_data_demeaned)
+    plt.xlabel('Time (s)')
+    plt.ylabel('Amplitude')
+    plt.xlim(180, 182)
+    plt.title('Raw Data (Demeaned)')
+
+    # raw data in frequency domain
+    plt.subplot(322)
+    plt.plot(f, np.abs(raw_freq))
+    plt.xlabel('Frequency (Hz)')
+    plt.ylabel('Magnitude')
+    plt.title('Signal in Frequency Domain')
+
+    # filter in time domain
+    plt.subplot(323)
+    plt.plot(t_filter, h_t)
+    plt.xlabel('Time (s)')
+    plt.ylabel('Amplitude')
+    plt.title('Impulse Response')
+
+    # filter in frequency domain
+    plt.subplot(324)
+    plt.plot(f_filter, np.abs(H_f))
+    plt.xlabel('Frequency (Hz)')
+    plt.ylabel('Magnitude')
+    plt.title('Frequency Response')
+
+    # filtered data in time domain
+    plt.subplot(325)
+    plt.plot(time, filtered_data, color='orange')
+    plt.xlabel('Time (s)')
+    plt.ylabel('Amplitude')
+    plt.xlim(180, 182)
+    plt.title('Filtered Data')
+
+    plt.tight_layout()
+    plt.show()
+    
+    # return statement
+    return filtered_data
 
 #%% Part 3: 
     
-def get_template_match(ecg_data, template):
+def get_template_match(signal_voltage, template):
     """
     Uses cross-correlation to see how often two signals overlap. 
 
@@ -71,7 +169,14 @@ def get_template_match(ecg_data, template):
         cross-correlation of the data and the template.
 
     """
-    template_match = np.convolve(ecg_data, template[::-1], mode='same')
+    
+    # reverse the template for cross-correlation
+    reversed_template = template[::-1]
+    
+    # compute the cross-correlation using convolution
+    template_match = np.convolve(signal_voltage, reversed_template, mode='same')
+    
+    # return statement
     return template_match
 
 def predict_beat_times(template_match, threshold):
@@ -91,12 +196,25 @@ def predict_beat_times(template_match, threshold):
         array of samples where the template match first exceeded the threshold.
 
     """
-    beat_samples = np.where((template_match[:-1] < threshold) & (template_match[1:] >= threshold))[0]
+    
+    # if statement catching the optional threshold statement
+    if threshold is None:
+        threshold = 0.5 * np.max(template_match)
+    
+    above_threshold = template_match > threshold
+    
+    # find where the signal crosses the threshold from below
+    crossings = (above_threshold[1:] & (~above_threshold[:-1]))
+    
+    # the indices where crossings occur are the beat samples
+    beat_samples = np.where(crossings)[0] + 1  # Add 1 because of the shift
+    
+    # return statement
     return beat_samples
 
 #%% Part 4: 
 
-def calculate_hrv(beat_samples, dt=0.1):
+def calculate_hrv(beats, dt=0.1):
     """
     Calculates IBI, interpolation, and the HRV of given beats.  
 
@@ -117,9 +235,78 @@ def calculate_hrv(beat_samples, dt=0.1):
         calculated heart rate variability, standard deviation of ibi.
 
     """
-    ibi = (np.diff(beat_samples))
-    xnew = np.arange(0, beat_samples[-1], dt)
-    interp = np.interp(xnew, beat_samples[1:], ibi)
-    hrv = np.std(ibi)
+    # calculating the ibi to use for hrv
+    ibi = (np.diff(beats))
+    xnew = np.arange(0, beats[-1], dt)
+    interp = np.interp(xnew, beats[1:], ibi) # linear interpolation
+    hrv = np.std(ibi) # hrv is the standard deviation of the ibis
+    
+    # return statement
     return ibi, interp, hrv 
+
+#%% Part 5:
+    
+def calculate_ratio(interp_time, fs):
+    """
+    This function calculates the low frequency to high frequency power ratio from a linearly interpretted series
+
+    Parameters
+    ----------
+    interp_time : array of floats, size:(n,), where n is the linearly interpolated points between IBIs
+        an array of points that have been linearly interpolated to span between the IBIs.
+    fs : float
+        sampling rate used for the linear interpolation.
+
+    Returns
+    -------
+    power_ratio : float
+        ratio of the LF and HF band power.
+    freq_low_band : array of floats, size:(n,), where n is the frequencies in the HF band
+        frequencies corresponding to the low frequency band.
+    freq_high_band : array of floats, size:(n,), where n is the frequencies in the LF band
+        frequencies corresponding to the high frequency band.
+    power_low_band : array of floats, size:(n,), where n is power values in the LF band
+        Power values in the low frequency band.
+    power_high_band : array of floats, size:(n,), where n is power values in the HF band
+        Power values in the high frequency band.
+
+    """
+    
+    # converting ibi to freq domain
+    freq_ibi = np.fft.rfft(interp_time)
+    f = np.fft.rfftfreq(len(interp_time), (1/fs))
+    
+    # calculating magnitude and power to plot
+    mag = np.abs(freq_ibi)
+    power = mag ** 2 # magnitude squared is power
+    power[0] = 0 # first value is too high as a result of the DC offset
+    
+    # boolean masks to find power values in low/high freq bands
+    low_band = (f >= 0.04) & (f <= 0.15)
+    high_band = (f >= 0.15) & (f <= 0.4)
+    
+    # separating low and high bands for frequency
+    freq_low_band = f[low_band]
+    freq_high_band = f[high_band]
+    
+    # separating low and high bands for power
+    power_low_band = power[low_band]
+    power_high_band = power[high_band]
+    
+    # calculating mean power levels
+    mean_power_low = np.mean(power_low_band) # do i neeed abs??
+    mean_power_high = np.mean(power_high_band)
+    
+    # power ratio calculation (LF/HF)
+    power_ratio = mean_power_low/mean_power_high
+    
+    # return statement
+    return power_ratio, freq_low_band, freq_high_band, power_low_band, power_high_band
+    
+    
+    
+
+
+
+
 
